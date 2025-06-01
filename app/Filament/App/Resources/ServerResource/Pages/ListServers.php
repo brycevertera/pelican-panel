@@ -55,19 +55,19 @@ class ListServers extends ListRecords
 
         $viewThree = [
             TextColumn::make('cpuUsage')
-                ->label('')
+                ->label('CPU')
                 ->icon('tabler-cpu')
                 ->tooltip(fn (Server $server) => 'Usage Limit: ' . $server->formatResource('cpu', limit: true, type: ServerResourceType::Percentage, precision: 0))
                 ->state(fn (Server $server) => $server->formatResource('cpu_absolute', type: ServerResourceType::Percentage))
                 ->color(fn (Server $server) => $this->getResourceColor($server, 'cpu')),
             TextColumn::make('memoryUsage')
-                ->label('')
+                ->label('Memory')
                 ->icon('tabler-memory')
                 ->tooltip(fn (Server $server) => 'Usage Limit: ' . $server->formatResource('memory', limit: true))
                 ->state(fn (Server $server) => $server->formatResource('memory_bytes'))
                 ->color(fn (Server $server) => $this->getResourceColor($server, 'memory')),
             TextColumn::make('diskUsage')
-                ->label('')
+                ->label('Disk')
                 ->icon('tabler-device-floppy')
                 ->tooltip(fn (Server $server) => 'Usage Limit: ' . $server->formatResource('disk', limit: true))
                 ->state(fn (Server $server) => $server->formatResource('disk_bytes'))

@@ -18,7 +18,8 @@ class DaemonConfigurationRepository extends DaemonRepository
     public function getSystemInformation(): array
     {
         return $this->getHttpClient()
-            ->connectTimeout(3)
+            ->connectTimeout(1)
+            ->timeout(1)
             ->get('/api/system')
             ->throwIf(function ($result) {
                 $header = $result->header('User-Agent');

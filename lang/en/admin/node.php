@@ -9,6 +9,7 @@ return [
         'basic_settings' => 'Basic Settings',
         'advanced_settings' => 'Advanced Settings',
         'config_file' => 'Configuration File',
+        'select_type' => 'Node Type',
     ],
     'table' => [
         'health' => 'Health',

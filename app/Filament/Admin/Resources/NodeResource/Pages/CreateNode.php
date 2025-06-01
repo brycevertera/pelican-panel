@@ -3,19 +3,26 @@
 namespace App\Filament\Admin\Resources\NodeResource\Pages;
 
 use App\Filament\Admin\Resources\NodeResource;
+use App\Models\ApiKey;
 use App\Models\Node;
+use App\Services\Acl\Api\AdminAcl;
+use App\Services\Api\KeyCreationService;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Components\View;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\HtmlString;
 
 class CreateNode extends CreateRecord
@@ -24,11 +31,83 @@ class CreateNode extends CreateRecord
 
     protected static bool $canCreateAnother = false;
 
+    private KeyCreationService $keyCreationService;
+
+    public function boot(KeyCreationService $keyCreationService): void
+    {
+        $this->keyCreationService = $keyCreationService;
+    }
+
+    public function local(): void
+    {
+        $wizard = null;
+        foreach ($this->form->getComponents() as $component) {
+            if ($component instanceof Wizard) {
+                $wizard = $component;
+            }
+        }
+
+        $wizard->dispatchEvent('wizard::nextStep', $wizard->getStatePath(), 0);
+    }
+
+    public function cloud(): void
+    {
+        $key = ApiKey::query()
+            ->where('key_type', ApiKey::TYPE_APPLICATION)
+            ->whereJsonContains('permissions->' . Node::RESOURCE_NAME, AdminAcl::READ|AdminAcl::WRITE)
+            ->first();
+
+        if (!$key) {
+            $key = $this->keyCreationService->setKeyType(ApiKey::TYPE_APPLICATION)->handle([
+                'memo' => 'Automatically generated node cloud key.',
+                'user_id' => auth()->user()->id,
+                'permissions' => [Node::RESOURCE_NAME => AdminAcl::READ|AdminAcl::WRITE],
+            ]);
+        }
+
+        $vars = [
+            'url' => Request::root(),
+            'token' => $key->identifier . $key->token,
+        ];
+
+        $domain = config('PELICAN_CLOUD_DOMAIN', 'https://hub.pelican.dev');
+
+        $response = Http::post("$domain/api/cloud/start", $vars);
+
+        if ($response->json('error')) {
+            $code = $response->json('code');
+            Notification::make()
+                ->danger()
+                ->persistent()
+                ->title('Pelican Cloud Error')->body(new HtmlString("
+                    It looks like there was a problem communicating with Pelican Cloud!
+                    Please make a ticket by <a class='underline text-blue-400' href='https://hub.pelican.dev/tickets?code=$code'>clicking here</a>.
+                "))
+                ->send()
+            ;
+
+            return;
+        }
+
+        $uuid = $response->json('uuid');
+
+        $this->redirect("$domain/cloud/$uuid");
+    }
+
     public function form(Forms\Form $form): Forms\Form
     {
         return $form
             ->schema([
                 Wizard::make([
+                    Step::make('select')
+                        ->label(trans('admin/node.tabs.select_type'))
+                        ->icon('tabler-cloud')
+                        ->columns(2)
+                        ->schema([
+                            View::make('filament.admin.nodes.config.left'),
+                            View::make('filament.admin.nodes.config.right'),
+                        ])
+                    ,
                     Step::make('basic')
                         ->label(trans('admin/node.tabs.basic_settings'))
                         ->icon('tabler-server')
@@ -374,16 +453,25 @@ class CreateNode extends CreateRecord
                                         ->required(),
                                 ]),
                         ]),
-                ])->columnSpanFull()
-                    ->nextAction(fn (Action $action) => $action->label(trans('admin/node.next_step')))
-                    ->submitAction(new HtmlString(Blade::render(<<<'BLADE'
-                                        <x-filament::button
-                                                type="submit"
-                                                size="sm"
-                                            >
-                                                Create Node
-                                            </x-filament::button>
-                                        BLADE))),
+                ])
+                    ->columnSpanFull()
+                    ->nextAction(function (Action $action, Wizard $wizard) {
+                        if ($wizard->getCurrentStepIndex() === 0) {
+                            return $action->label(trans('admin/node.next_step'))->view('filament.admin.nodes.config.empty');
+                        }
+
+                        return $action->label(trans('admin/node.next_step'));
+                    })
+                    ->submitAction(new HtmlString(Blade::render(
+                        <<<'BLADE'
+                            <x-filament::button
+                                type="submit"
+                                size="sm"
+                            >
+                                Create Node
+                            </x-filament::button>
+                        BLADE
+                    ))),
             ]);
     }
 
