@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tests\Feature\Webhooks;
+namespace App\Tests\Unit\Webhooks;
 
 use App\Events\Server\Installed;
 use App\Jobs\ProcessWebhook;
