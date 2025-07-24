@@ -64,7 +64,7 @@ class ProcessWebhooksTest extends TestCase
         ProcessWebhook::dispatchSync(
             $webhook,
             'eloquent.created: '.Server::class,
-            $data,
+            [$data],
         );
 
         $this->assertCount(1, cache()->get("webhooks.$eventName"));
