@@ -174,7 +174,7 @@ class EditProfile extends BaseEditProfile
                                             $unlink = array_key_exists($id, $this->getUser()->oauth ?? []);
 
                                             $actions[] = Action::make("oauth_$id")
-                                                ->label(($unlink ? trans('profile.unlink') : trans('profile.link')) . $name)
+                                                ->label(trans('profile.' . ($unlink ? 'unlink' : 'link'), ['name' => $name]))
                                                 ->icon($unlink ? 'tabler-unlink' : 'tabler-link')
                                                 ->color(Color::hex($schema->getHexColor()))
                                                 ->action(function (UserUpdateService $updateService) use ($id, $name, $unlink) {
@@ -322,6 +322,7 @@ class EditProfile extends BaseEditProfile
                                             Section::make(trans('profile.api_keys'))->columnSpan(2)->schema([
                                                 Repeater::make('api_keys')
                                                     ->hiddenLabel()
+                                                    ->inlineLabel(false)
                                                     ->relationship('apiKeys')
                                                     ->addable(false)
                                                     ->itemLabel(fn ($state) => $state['identifier'])
@@ -406,6 +407,7 @@ class EditProfile extends BaseEditProfile
                                             Section::make(trans('profile.ssh_keys'))->columnSpan(2)->schema([
                                                 Repeater::make('ssh_keys')
                                                     ->hiddenLabel()
+                                                    ->inlineLabel(false)
                                                     ->relationship('sshKeys')
                                                     ->addable(false)
                                                     ->itemLabel(fn ($state) => $state['name'])
@@ -445,14 +447,17 @@ class EditProfile extends BaseEditProfile
                                     ->icon('tabler-history')
                                     ->schema([
                                         Repeater::make('activity')
-                                            ->label('')
+                                            ->hiddenLabel()
+                                            ->inlineLabel(false)
                                             ->deletable(false)
                                             ->addable(false)
                                             ->relationship(null, function (Builder $query) {
                                                 $query->orderBy('timestamp', 'desc');
                                             })
                                             ->schema([
-                                                Placeholder::make('activity!')->label('')->content(fn (ActivityLog $log) => new HtmlString($log->htmlable())),
+                                                Placeholder::make('log')
+                                                    ->hiddenLabel()
+                                                    ->content(fn (ActivityLog $log) => new HtmlString($log->htmlable())),
                                             ]),
                                     ]),
 
@@ -470,6 +475,14 @@ class EditProfile extends BaseEditProfile
                                                     ->options([
                                                         'grid' => trans('profile.grid'),
                                                         'table' => trans('profile.table'),
+                                                    ]),
+                                                ToggleButtons::make('top_navigation')
+                                                    ->label(trans('profile.navigation'))
+                                                    ->inline()
+                                                    ->required()
+                                                    ->options([
+                                                        true => trans('profile.top'),
+                                                        false => trans('profile.side'),
                                                     ]),
                                             ]),
                                         Section::make(trans('profile.console'))
@@ -628,9 +641,10 @@ class EditProfile extends BaseEditProfile
             'console_rows' => $data['console_rows'],
             'console_graph_period' => $data['console_graph_period'],
             'dashboard_layout' => $data['dashboard_layout'],
+            'top_navigation' => $data['top_navigation'],
         ];
 
-        unset($data['console_font'],$data['console_font_size'], $data['console_rows'], $data['dashboard_layout']);
+        unset($data['console_font'],$data['console_font_size'], $data['console_rows'], $data['dashboard_layout'], $data['top_navigation']);
         $data['customization'] = json_encode($moarbetterdata);
 
         return $data;
@@ -645,6 +659,7 @@ class EditProfile extends BaseEditProfile
         $data['console_rows'] = $moarbetterdata['console_rows'] ?? 30;
         $data['console_graph_period'] = $moarbetterdata['console_graph_period'] ?? 30;
         $data['dashboard_layout'] = $moarbetterdata['dashboard_layout'] ?? 'grid';
+        $data['top_navigation'] = $moarbetterdata['top_navigation'] ?? false;
 
         return $data;
     }
