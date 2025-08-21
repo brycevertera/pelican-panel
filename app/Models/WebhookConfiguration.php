@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Jobs\ProcessWebhook;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
@@ -230,5 +231,10 @@ class WebhookConfiguration extends Model
             'updated_at' => '2025-05-12T17:53:12.000000Z',
             'id' => 2,
         ];
+    }
+
+    public function webhookEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(WebhookEvent::class, 'webhook_configurations_events', 'configuration_id', 'event_id');
     }
 }

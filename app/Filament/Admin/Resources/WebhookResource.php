@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\WebhookResource\Pages;
 use App\Filament\Admin\Resources\WebhookResource\Pages\EditWebhookConfiguration;
+use App\Filament\Admin\Resources\WebhookResource\RelationManagers\EventsRelationManager;
 use App\Livewire\AlertBanner;
 use App\Models\WebhookConfiguration;
 use App\Traits\Filament\CanCustomizePages;
@@ -23,6 +24,7 @@ use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Forms\Get;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Forms\Set;
 use Filament\Tables\Actions\DeleteBulkAction;
@@ -161,17 +163,21 @@ class WebhookResource extends Resource
                     ->view('filament.components.webhooksection')
                     ->aside()
                     ->formBefore(),
-                Section::make(trans('admin/webhook.events'))
+                /*Section::make(trans('admin/webhook.events'))
                     ->schema([
-                        CheckboxList::make('events')
-                            ->live()
-                            ->options(fn () => WebhookConfiguration::filamentCheckboxList())
-                            ->searchable()
-                            ->bulkToggleable()
-                            ->columns(3)
-                            ->columnSpanFull()
-                            ->required(),
-                    ]),
+                        CheckboxList::make('webhookEvents')
+                                ->relationship('webhookEvents')
+                                ->live()
+                                ->options(fn () => WebhookConfiguration::filamentCheckboxList())
+                                ->searchable()
+                                ->bulkToggleable()
+                                ->columns(3)
+                                ->columnSpanFull()
+                                ->required()
+                                ->before(function (array $state) {
+                                    dd($state);
+                                }),
+                    ]),*/
             ]);
     }
 
@@ -341,6 +347,14 @@ class WebhookResource extends Resource
             'create' => Pages\CreateWebhookConfiguration::route('/create'),
             'view' => Pages\ViewWebhookConfiguration::route('/{record}'),
             'edit' => Pages\EditWebhookConfiguration::route('/{record}/edit'),
+        ];
+    }
+
+    /** @return class-string<RelationManager>[] */
+    public static function getDefaultRelations(): array
+    {
+        return [
+            EventsRelationManager::class,
         ];
     }
 }
