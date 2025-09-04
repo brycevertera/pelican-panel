@@ -14,7 +14,6 @@ class WebhookConfigurationFactory extends Factory
         return [
             'endpoint' => fake()->url(),
             'description' => fake()->sentence(),
-            'events' => [],
         ];
     }
 }

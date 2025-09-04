@@ -7,6 +7,7 @@ use App\Jobs\ProcessWebhook;
 use App\Models\Server;
 use App\Models\Webhook;
 use App\Models\WebhookConfiguration;
+use App\Models\WebhookEvent;
 use App\Tests\TestCase;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -26,9 +27,10 @@ class ProcessWebhooksTest extends TestCase
 
     public function test_it_sends_a_single_webhook(): void
     {
-        $webhook = WebhookConfiguration::factory()->create([
-            'events' => [$eventName = 'eloquent.created: '.Server::class],
-        ]);
+        $eventName = 'eloquent.created: '.Server::class;
+        $webhook = WebhookConfiguration::factory()
+            ->has(WebhookEvent::factory()->state(['name' => $eventName]), 'webhookEvents')
+            ->create(['events' => []]);
 
         Http::fake([$webhook->endpoint => Http::response()]);
 
@@ -67,7 +69,7 @@ class ProcessWebhooksTest extends TestCase
             [$data],
         );
 
-        $this->assertCount(1, cache()->get("webhooks.$eventName"));
+        $this->assertCount(1, cache()->get("webhooks.$eventName", []));
         $this->assertEquals($webhook->id, cache()->get("webhooks.$eventName")->first()->id);
 
         Http::assertSentCount(1);
